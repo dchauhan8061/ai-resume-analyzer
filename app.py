@@ -2,11 +2,21 @@ import streamlit as st
 from pypdf import PdfReader
 import google.generativeai as genai
 import os
+from fpdf import FPDF
+
 my_key = os.environ.get("MY_API_KEY")
 
 model = genai.GenerativeModel('gemini-2.5-flash')
 
 st.set_page_config(page_title="AI Resume Analyzer", page_icon="📄", layout="centered")
+
+def create_pdf(text):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+    clean_text = text.encode('latin-1', 'ignore').decode('latin-1')
+    pdf.multi_cell(0, 10, txt=clean_text)
+    return pdf.output(dest='S').encode('latin-1')
 
 st.markdown("""
 <style>
@@ -113,6 +123,15 @@ Resume:
             st.subheader("Result")
             if response and response.text:
                 st.markdown(response.text)
+                
+                pdf_bytes = create_pdf(response.text)
+                
+                st.download_button(
+                    label="📥 Download Analysis Report",
+                    data=pdf_bytes,
+                    file_name="Analysis_Report.pdf",
+                    mime="application/pdf"
+                )
             else:
                 st.error("No response")
     else:
