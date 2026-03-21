@@ -5,3 +5,4 @@ python-dotenv
 gunicorn
 PyPDF2
 pypdf
+fpdf

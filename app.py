@@ -51,6 +51,8 @@ st.title("📄 AI Resume Analyzer")
 
 uploaded_file = st.file_uploader("Upload Resume (PDF)", type=["pdf"], key="resume_uploader")
 
+jd_text = st.text_area("Paste the Job Description (JD) here:", help="Jis job ke liye aap apply kar rahe hain, uska description yahan paste karein.")
+
 st.set_page_config(page_title="AI Resume Analyzer", page_icon="📄", layout="centered")
 
 with st.sidebar:
