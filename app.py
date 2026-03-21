@@ -2,6 +2,7 @@ import streamlit as st
 from pypdf import PdfReader
 import google.generativeai as genai
 import os
+import re
 from fpdf import FPDF
 
 my_key = os.environ.get("MY_API_KEY")
@@ -122,10 +123,28 @@ Resume:
 
             st.subheader("Result")
             if response and response.text:
+
+
+		# --- 1. SCORE NIKALNE KA LOGIC (YAHAN SE COPY KAREIN) --- 
+                score_match = re.search(r'(\d+)\s*/\s*100', response.text)
+                score = int(score_match.group(1)) if score_match else 0
+                
+                # --- 2. PROGRESS BAR DIKHAYEIN ---
+                st.subheader(f"📊 ATS Match Score: {score}%")
+                if score >= 75:
+                    st.success("🔥 Shabaash! Strong Match.")
+                    st.progress(score / 100)
+                elif score >= 50:
+                    st.warning("⚠️ Theek hai, par improvements chahiye.")
+                    st.progress(score / 100)
+                else:
+                    st.error("❌ Low Match. Keywords missing hain.")
+                    st.progress(score / 100)
+                
+                st.markdown("---")
                 st.markdown(response.text)
                 
                 pdf_bytes = create_pdf(response.text)
-                
                 st.download_button(
                     label="📥 Download Analysis Report",
                     data=pdf_bytes,
