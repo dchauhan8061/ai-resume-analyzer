@@ -72,6 +72,11 @@ if uploaded_file:
         clear = st.button("🧹 Clear", use_container_width=True)
 
     if clear:
+        # Saare widgets ki values reset karna
+        st.session_state["resume_input"] = None
+        st.session_state["jd_input"] = ""
+        st.session_state["role_input"] = ""
+        # Poori app ko refresh karna
         st.rerun()
 
     if analyze:
