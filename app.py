@@ -15,7 +15,7 @@ st.set_page_config(
 # API Setup
 my_key = os.environ.get("MY_API_KEY")
 genai.configure(api_key=my_key)
-model = genai.GenerativeModel('gemini-1.5-flash')
+model = genai.GenerativeModel('gemini-2.5-flash')
 
 # 2. PDF Creation Function
 def create_pdf(text):
