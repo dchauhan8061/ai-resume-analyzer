@@ -51,8 +51,54 @@ st.markdown("""
 
 # 4. Main App UI
 st.title("📄 AI Resume Analyzer")
-uploaded_file = st.file_uploader("Upload Resume (PDF)", type=["pdf"], key="file_val")
-jd_text = st.text_area("Paste the Job Description (JD) here:", key="jd_val")
+# --- 1. Inputs (Ab ye hamesha dikhenge) ---
+uploaded_file = st.file_uploader("Upload Resume (PDF)", type=["pdf"], key="resume_input")
+jd_text = st.text_area("Paste the Job Description (JD) here:", key="jd_input")
+
+# --- 2. Buttons (Ab ye hamesha screen par rahenge) ---
+col1, col2 = st.columns(2)
+
+with col1:
+    analyze = st.button("🚀 Analyze Resume", use_container_width=True)
+
+with col2:
+    clear = st.button("🧹 Clear All", use_container_width=True)
+
+# --- 3. CLEAR LOGIC (SAB KUCH SAAF KARNE KE LIYE) ---
+if clear:
+    # Saare input fields ko reset karna
+    st.session_state["jd_input"] = ""
+    st.session_state["resume_input"] = None
+    if "role_input" in st.session_state:
+        st.session_state["role_input"] = ""
+    
+    # File uploader ko force reset karne ki trick
+    if "resume_input" in st.session_state:
+        st.session_state.pop("resume_input")
+        
+    st.rerun()
+
+# --- 4. ANALYZE LOGIC (YE SIRF TAB CHALEGA JAB ANALYZE DABAYE) ---
+if analyze:
+    if uploaded_file:
+        with st.spinner("Analyzing..."):
+            # PDF se text nikalna
+            resume_text = ""
+            reader = PdfReader(uploaded_file)
+            for page in reader.pages:
+                resume_text += page.extract_text()
+            
+            # --- AI PROMPT & RESULT (Aapka purana wala code yahan se continue hoga) ---
+            prompt = f"""
+            Target Role: {target_job}
+            JD: {jd_text}
+            Resume: {resume_text}
+            Give ATS Score, Strengths, Weaknesses, and Missing Keywords: (Comma-separated).
+            """
+            # ... baaki ka AI logic jo humne pehle set kiya tha ...
+    else:
+        # Agar bina file ke Analyze dabaya toh warning
+        st.warning("Bhai, pehle Resume PDF upload toh karo!")
 
 with st.sidebar:
     st.header("⚙️ Settings")
