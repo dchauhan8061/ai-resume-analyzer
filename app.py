@@ -65,7 +65,11 @@ col1, col2 = st.columns(2)
 with col1:
     analyze = st.button("🚀 Analyze Resume", use_container_width=True)
 with col2:
-    clear = st.button("🧹 Clear All", use_container_width=True)
+    if st.button("🧹 Clear All", use_container_width=True):
+        # ERROR FIX: Direct assign karne ke bajaye keys ko delete karo
+        for key in st.session_state.keys():
+            del st.session_state[key]
+        st.rerun()
 
 # 6. Logic
 if clear:
@@ -76,7 +80,7 @@ if clear:
 
 if analyze:
     if uploaded_file and jd_text:
-        with st.spinner("🔍 Analyzing with Gemini AI..."):
+        with st.spinner("🔍 Analyzing..."):
             try:
                 # Extract Text
                 resume_text = ""
