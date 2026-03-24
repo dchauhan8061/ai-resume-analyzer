@@ -5,6 +5,12 @@ import os
 import re
 from fpdf import FPDF
 
+st.set_page_config(
+    page_title="getshortlisted.online | AI Resume Analyzer", 
+    page_icon="📄", 
+    layout="centered"
+)
+
 my_key = os.environ.get("MY_API_KEY")
 
 model = genai.GenerativeModel('gemini-2.5-flash')
