@@ -15,7 +15,7 @@ st.set_page_config(
 # API Setup
 my_key = os.environ.get("MY_API_KEY")
 genai.configure(api_key=my_key)
-model = genai.GenerativeModel('gemini-2.5-flash')
+model = genai.GenerativeModel('gemini-2.5-flash') # Updated to latest stable
 
 # 2. PDF Creation Function
 def create_pdf(text):
@@ -30,8 +30,8 @@ def create_pdf(text):
     pdf.set_text_color(0, 0, 0)
     pdf.set_font("Arial", size=11)
     clean_text = text.replace("**", "").replace("###", "").replace("##", "").replace("#", "").replace("*", "-")
-    final_text = clean_text.encode('latin-1', 'ignore').decode('latin-1')
-    pdf.multi_cell(0, 8, txt=final_text)
+    # Multi_cell handles long text
+    pdf.multi_cell(0, 8, txt=clean_text.encode('latin-1', 'ignore').decode('latin-1'))
     
     pdf.set_y(-20)
     pdf.set_font("Arial", 'I', 8)
@@ -51,68 +51,81 @@ st.markdown("""
 
 # 4. Main App UI
 st.title("📄 AI Resume Analyzer")
-uploaded_file = st.file_uploader("Upload Resume (PDF)", type=["pdf"])
-jd_text = st.text_area("Paste the Job Description (JD) here:")
+
+# Inputs
+uploaded_file = st.file_uploader("Upload Resume (PDF)", type=["pdf"], key="resume_input")
+jd_text = st.text_area("Paste the Job Description (JD) here:", key="jd_input", height=200)
 
 with st.sidebar:
     st.header("⚙️ Settings")
-    target_job = st.text_input("🎯 Target Job Role", placeholder="e.g. Data Scientist")
+    target_job = st.text_input("🎯 Target Job Role", placeholder="e.g. Data Scientist", key="role_input")
 
-# 5. Extraction & Logic
-if uploaded_file:
-    resume_text = ""
-    reader = PdfReader(uploaded_file)
-    for page in reader.pages:
-        resume_text += page.extract_text()
+# 5. Buttons Section (Variables always defined here)
+col1, col2 = st.columns(2)
+with col1:
+    analyze = st.button("🚀 Analyze Resume", use_container_width=True)
+with col2:
+    clear = st.button("🧹 Clear All", use_container_width=True)
 
-    col1, col2 = st.columns(2)
-    with col1:
-        analyze = st.button("🚀 Analyze Resume", use_container_width=True)
-    with col2:
-        clear = st.button("🧹 Clear", use_container_width=True)
+# 6. Logic
+if clear:
+    st.session_state["jd_input"] = ""
+    st.session_state["role_input"] = ""
+    # Clearing file uploader is tricky, rerun helps
+    st.rerun()
 
-    if clear:
-        st.rerun()
-
-    if analyze:
-        with st.spinner("Analyzing..."):
-            prompt = f"""
-            Target Role: {target_job}
-            JD: {jd_text}
-            Resume: {resume_text}
-            Give:
-            1. ATS Score (out of 100)
-            2. Strengths
-            3. Weaknesses
-            4. Missing Keywords: (Comma-separated list only)
-            5. Improvements
-            """
-            response = model.generate_content(prompt)
-            
-            if response and response.text:
-                full_text = response.text
+if analyze:
+    if uploaded_file and jd_text:
+        with st.spinner("🔍 Analyzing with Gemini AI..."):
+            try:
+                # Extract Text
+                resume_text = ""
+                reader = PdfReader(uploaded_file)
+                for page in reader.pages:
+                    resume_text += page.extract_text()
                 
-                # Score Extraction
-                score_match = re.search(r'(\d+)\s*/\s*100', full_text)
-                score = int(score_match.group(1)) if score_match else 0
+                # AI Prompt
+                prompt = f"""
+                Target Role: {target_job}
+                JD: {jd_text}
+                Resume: {resume_text}
                 
-                st.subheader(f"📊 ATS Match Score: {score}%")
-                st.progress(score / 100)
+                Provide analysis in this exact format:
+                - ATS Score: [score]/100
+                - Strengths: [list]
+                - Weaknesses: [list]
+                - Missing Keywords: [comma separated keywords]
+                - Improvements: [steps]
+                """
+                
+                response = model.generate_content(prompt)
+                
+                if response and response.text:
+                    full_text = response.text
+                    
+                    # Score Extraction
+                    score_match = re.search(r'(\d+)\s*/\s*100', full_text)
+                    score = int(score_match.group(1)) if score_match else 0
+                    
+                    st.subheader(f"📊 ATS Match Score: {score}%")
+                    st.progress(score / 100)
 
-                # --- SICK SKILL TAGS ---
-                if "Missing Keywords:" in full_text:
-                    st.markdown("### 🎯 Skills to Add")
-                    try:
+                    # Skill Tags Logic
+                    if "Missing Keywords:" in full_text:
+                        st.markdown("### 🎯 Skills to Add")
                         raw_keywords = full_text.split("Missing Keywords:")[1].split("\n")[0]
                         keywords_list = [k.strip() for k in raw_keywords.split(",") if k.strip()]
-                        tags = "".join([f'<span style="background-color:#1E3A8A;color:white;padding:5px 12px;border-radius:50px;margin:4px;display:inline-block;border:1px solid #3B82F6;font-size:12px;font-weight:bold;">{k}</span>' for k in keywords_list])
+                        tags = "".join([f'<span style="background-color:#1E3A8A;color:white;padding:5px 12px;border-radius:50px;margin:4px;display:inline-block;font-size:12px;">{k}</span>' for k in keywords_list])
                         st.markdown(tags, unsafe_allow_html=True)
-                        st.write("")
-                    except: pass
 
-                st.markdown("---")
-                st.markdown(full_text)
+                    st.markdown("---")
+                    st.markdown(full_text)
+                    
+                    # Download Report
+                    pdf_bytes = create_pdf(full_text)
+                    st.download_button("📥 Download Report", data=pdf_bytes, file_name="ATS_Report.pdf", mime="application/pdf")
                 
-                # Download
-                pdf_bytes = create_pdf(full_text)
-                st.download_button("📥 Download Report", data=pdf_bytes, file_name="Analysis.pdf", mime="application/pdf")
+            except Exception as e:
+                st.error(f"Error: {e}")
+    else:
+        st.warning("Bhai, Resume aur Job Description dono daalo pehle!")
