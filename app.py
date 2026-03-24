@@ -62,20 +62,18 @@ with st.sidebar:
 
 # 5. Buttons Section (Variables always defined here)
 col1, col2 = st.columns(2)
+
 with col1:
     analyze = st.button("🚀 Analyze Resume", use_container_width=True)
-with col2:
-    if st.button("🧹 Clear All", use_container_width=True):
-        # ERROR FIX: Direct assign karne ke bajaye keys ko delete karo
-        for key in st.session_state.keys():
-            del st.session_state[key]
-        st.rerun()
 
-# 6. Logic
+with col2:
+    # Yahan 'clear =' likhna zaroori hai!
+    clear = st.button("🧹 Clear All", use_container_width=True)
+
+# 6. Logic (Ab 'if clear' kaam karega)
 if clear:
-    st.session_state["jd_input"] = ""
-    st.session_state["role_input"] = ""
-    # Clearing file uploader is tricky, rerun helps
+    for key in st.session_state.keys():
+        del st.session_state[key]
     st.rerun()
 
 if analyze:
