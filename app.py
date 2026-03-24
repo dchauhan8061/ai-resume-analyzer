@@ -51,12 +51,12 @@ st.markdown("""
 
 # 4. Main App UI
 st.title("📄 AI Resume Analyzer")
-uploaded_file = st.file_uploader("Upload Resume (PDF)", type=["pdf"])
-jd_text = st.text_area("Paste the Job Description (JD) here:")
+uploaded_file = st.file_uploader("Upload Resume (PDF)", type=["pdf"], key="file_val")
+jd_text = st.text_area("Paste the Job Description (JD) here:", key="jd_val")
 
 with st.sidebar:
     st.header("⚙️ Settings")
-    target_job = st.text_input("🎯 Target Job Role", placeholder="e.g. Data Scientist")
+    target_job = st.text_input("🎯 Target Job Role", placeholder="e.g. Data Scientist", key="role_val")
 
 # 5. Extraction & Logic
 if uploaded_file:
