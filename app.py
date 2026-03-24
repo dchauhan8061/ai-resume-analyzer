@@ -15,7 +15,6 @@ my_key = os.environ.get("MY_API_KEY")
 
 model = genai.GenerativeModel('gemini-2.5-flash')
 
-st.set_page_config(page_title="AI Resume Analyzer", page_icon="📄", layout="centered")
 
 def create_pdf(text):
     pdf = FPDF()
