@@ -14,6 +14,10 @@ st.set_page_config(
     layout="centered"
 )
 
+# 1. Branding (Sirf Title aur Header)
+st.title("📄 AI Resume Analyzer")
+st.markdown("### Get your ATS score and improve your chances! 🚀")
+
 # API Setup
 my_key = os.environ.get("MY_API_KEY")
 genai.configure(api_key=my_key)
@@ -55,8 +59,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# 4. Main App UI
-st.title("📄 AI Resume Analyzer")
 
 # Inputs
 uploaded_file = st.file_uploader("Upload Resume (PDF or DOCX)", type=["pdf", "docx"], key="resume_input")
