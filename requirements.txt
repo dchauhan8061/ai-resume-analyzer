@@ -6,3 +6,5 @@ gunicorn
 PyPDF2
 pypdf
 fpdf
+docx2txt
+plotly

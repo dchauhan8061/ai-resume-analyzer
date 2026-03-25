@@ -4,6 +4,8 @@ import google.generativeai as genai
 import os
 import re
 from fpdf import FPDF
+import docx2txt
+import plotly.graph_objects as go
 
 # 1. Branding Settings
 st.set_page_config(
@@ -16,6 +18,10 @@ st.set_page_config(
 my_key = os.environ.get("MY_API_KEY")
 genai.configure(api_key=my_key)
 model = genai.GenerativeModel('gemini-2.5-flash') # Updated to latest stable
+
+# 1. New Function for DOCX
+def extract_text_from_docx(file):
+    return docx2txt.process(file)
 
 # 2. PDF Creation Function
 def create_pdf(text):
@@ -53,7 +59,7 @@ st.markdown("""
 st.title("📄 AI Resume Analyzer")
 
 # Inputs
-uploaded_file = st.file_uploader("Upload Resume (PDF)", type=["pdf"], key="resume_input")
+uploaded_file = st.file_uploader("Upload Resume (PDF or DOCX)", type=["pdf", "docx"], key="resume_input")
 jd_text = st.text_area("Paste the Job Description (JD) here:", key="jd_input", height=200)
 
 with st.sidebar:
@@ -77,27 +83,36 @@ if clear:
     st.rerun()
 
 if analyze:
-    # Ab sirf Resume hona zaroori hai, JD optional hai
-    if uploaded_file:
-        with st.spinner("🔍 Analyzing..."):
+    if uploaded_file: # Ab JD optional hai, sirf file zaroori hai
+        with st.spinner("🔍 Deep Scanning Resume..."):
             try:
-                # 1. Extract Text
+                # --- STEP 1: Text Extraction (PDF or DOCX) ---
                 resume_text = ""
-                reader = PdfReader(uploaded_file)
-                for page in reader.pages:
-                    resume_text += page.extract_text()
+                file_extension = uploaded_file.name.split('.')[-1].lower()
+
+                if file_extension == 'pdf':
+                    reader = PdfReader(uploaded_file)
+                    for page in reader.pages:
+                        resume_text += page.extract_text()
+                elif file_extension == 'docx':
+                    import docx2txt
+                    resume_text = docx2txt.process(uploaded_file)
                 
                 # 2. Dynamic Prompt (JD ke bina bhi chalega)
                 # Agar jd_text khali hai toh hum AI ko bolenge general analysis kare
-                context_jd = jd_text if jd_text.strip() else "Not provided. Analyze based on the Target Role only."
+                context_jd = jd_text if jd_text.strip() else "Not provided. Analyze based on industry standards."
 
                 prompt = f"""
                 Target Role: {target_job if target_job else 'Relevant Professional Role'}
                 JD: {context_jd}
                 Resume: {resume_text}
                 
-                Provide analysis in this exact format:
-                - ATS Score: [score]/100 (If JD is missing, score based on industry standards for the Target Role)
+                Provide analysis in this EXACT format:
+                - ATS Score: [score]/100
+                - Technical Score: [0-100]
+                - Experience Score: [0-100]
+                - Education Score: [0-100]
+                - Top 3 Recommended Roles: [Role 1, Role 2, Role 3]
                 - Strengths: [list]
                 - Weaknesses: [list]
                 - Missing Keywords: [comma separated keywords]
@@ -109,32 +124,23 @@ if analyze:
                 if response and response.text:
                     full_text = response.text
                     
-                    # --- BAAKI KA EXTRACTION LOGIC SAME RAHEGA ---
-                    score_match = re.search(r'(\d+)\s*/\s*100', full_text)
+                    # --- STEP 3: Display Results ---
+                    # (Score extraction logic yahan aayega)
+                    score_match = re.search(r'ATS Score: (\d+)', full_text)
                     score = int(score_match.group(1)) if score_match else 0
                     
                     st.subheader(f"📊 ATS Match Score: {score}%")
-                    if not jd_text.strip():
-                        st.info("ℹ️ Note: Ye score general industry standards par based hai kyunki JD provide nahi kiya gaya.")
-                    
                     st.progress(score / 100)
 
-                    # Skill Tags Logic
-                    if "Missing Keywords:" in full_text:
-                        st.markdown("### 🎯 Skills to Add")
-                        raw_keywords = full_text.split("Missing Keywords:")[1].split("\n")[0]
-                        keywords_list = [k.strip() for k in raw_keywords.split(",") if k.strip()]
-                        tags = "".join([f'<span style="background-color:#1E3A8A;color:white;padding:5px 12px;border-radius:50px;margin:4px;display:inline-block;font-size:12px;">{k}</span>' for k in keywords_list])
-                        st.markdown(tags, unsafe_allow_html=True)
-
+                    # --- Yahan aap Radar Chart ya Recommendation Boxes add kar sakte ho ---
                     st.markdown("---")
                     st.markdown(full_text)
                     
+                    # Download Report
                     pdf_bytes = create_pdf(full_text)
-                    st.download_button("📥 Download Report", data=pdf_bytes, file_name="ATS_Report.pdf", mime="application/pdf")
-                
+                    st.download_button("📥 Download Report", data=pdf_bytes, file_name="ATS_Report.pdf")
+
             except Exception as e:
                 st.error(f"Error: {e}")
     else:
-        # Ab warning sirf tab aayegi jab Resume hi na ho
-        st.warning("Bhai, kam se kam Resume PDF toh upload karo!")
+        st.warning("Bhai, kam se kam Resume toh upload karo!")
