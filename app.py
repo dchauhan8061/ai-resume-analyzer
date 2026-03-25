@@ -77,23 +77,27 @@ if clear:
     st.rerun()
 
 if analyze:
-    if uploaded_file and jd_text:
+    # Ab sirf Resume hona zaroori hai, JD optional hai
+    if uploaded_file:
         with st.spinner("🔍 Analyzing..."):
             try:
-                # Extract Text
+                # 1. Extract Text
                 resume_text = ""
                 reader = PdfReader(uploaded_file)
                 for page in reader.pages:
                     resume_text += page.extract_text()
                 
-                # AI Prompt
+                # 2. Dynamic Prompt (JD ke bina bhi chalega)
+                # Agar jd_text khali hai toh hum AI ko bolenge general analysis kare
+                context_jd = jd_text if jd_text.strip() else "Not provided. Analyze based on the Target Role only."
+
                 prompt = f"""
-                Target Role: {target_job}
-                JD: {jd_text}
+                Target Role: {target_job if target_job else 'Relevant Professional Role'}
+                JD: {context_jd}
                 Resume: {resume_text}
                 
                 Provide analysis in this exact format:
-                - ATS Score: [score]/100
+                - ATS Score: [score]/100 (If JD is missing, score based on industry standards for the Target Role)
                 - Strengths: [list]
                 - Weaknesses: [list]
                 - Missing Keywords: [comma separated keywords]
@@ -105,11 +109,14 @@ if analyze:
                 if response and response.text:
                     full_text = response.text
                     
-                    # Score Extraction
+                    # --- BAAKI KA EXTRACTION LOGIC SAME RAHEGA ---
                     score_match = re.search(r'(\d+)\s*/\s*100', full_text)
                     score = int(score_match.group(1)) if score_match else 0
                     
                     st.subheader(f"📊 ATS Match Score: {score}%")
+                    if not jd_text.strip():
+                        st.info("ℹ️ Note: Ye score general industry standards par based hai kyunki JD provide nahi kiya gaya.")
+                    
                     st.progress(score / 100)
 
                     # Skill Tags Logic
@@ -123,11 +130,11 @@ if analyze:
                     st.markdown("---")
                     st.markdown(full_text)
                     
-                    # Download Report
                     pdf_bytes = create_pdf(full_text)
                     st.download_button("📥 Download Report", data=pdf_bytes, file_name="ATS_Report.pdf", mime="application/pdf")
                 
             except Exception as e:
                 st.error(f"Error: {e}")
     else:
-        st.warning("Bhai, Resume aur Job Description dono daalo pehle!")
+        # Ab warning sirf tab aayegi jab Resume hi na ho
+        st.warning("Bhai, kam se kam Resume PDF toh upload karo!")
